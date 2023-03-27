@@ -9,16 +9,48 @@
 #include <condition_variable>
 #include <functional>
 
+// Any类型：可以接受任意类型数据
+class Any
+{
+public:
+	Any() = default;
+	~Any() = default;
+	Any(const Any&) = delete;
+	Any& operator=(const Any&) = delete;
+	Any(Any&&) = default;
+	Any& operator=(Any&&) = default;
+
+	template<typename T>
+	Any(T data) : base_(std::make_unique<Derive<T>>(data));
+private:
+	class Base
+	{
+	public:
+		virtual ~Base() = default;
+	};
+	template<typename T>
+	class Derive
+	{
+	public:
+		Derive(T data) : data_(data) {}
+		~Derive() = default;
+	private:
+		T data_;
+	};;
+private:
+	std::unique_ptr<Base> base_;
+};;
+
 // 任务抽象基类
 class Task
 {
 public:
 	// 用户可以自定义任意类型任务，从Task继承，重写run方法，实现自定义任务处理
-	virtual void run() = 0;
+	virtual Any run() = 0;
 };
 
 // 线程池支持的模式
-enum class PoolMode 
+enum class PoolMode
 {
 	MODE_FIXED, // 固定数量的线程
 	MODE_CACHED, // 线程数量可动态增长
