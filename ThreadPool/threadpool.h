@@ -54,6 +54,35 @@ private:
 	std::unique_ptr<Base> base_;
 };;
 
+// 实现一个信号量类（精简版条件变量）
+class Semaphore 
+{
+public:
+	Semaphore(int limit) : resLimit_(limit) {}
+	~Semaphore() = default;
+	// 获取资源
+	void wait()
+	{
+		std::unique_lock<std::mutex> lock(mtx_);
+		// 如果资源已经被占用完了，就等待
+		cond_.wait(lock, [&]()->bool {return resLimit_ > 0; });
+		resLimit_--;
+	}
+	// 释放资源
+	void post()
+	{
+		std::unique_lock<std::mutex> lock(mtx_);
+		resLimit_++;
+		cond_.notify_all();
+	}
+private:
+	int resLimit_;
+	std::mutex mtx_;
+	std::condition_variable cond_;
+};
+
+// 实现接受提交到线程池的task任务执行完成后的返回值类型Result
+
 // 任务抽象基类
 class Task
 {
