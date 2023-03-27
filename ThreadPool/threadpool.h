@@ -22,6 +22,19 @@ public:
 
 	template<typename T>
 	Any(T data) : base_(std::make_unique<Derive<T>>(data));
+
+	// 这个方法能把Any对象里面存储的data数据提取出来
+	template<typename T>
+	T cast_()
+	{
+		// 智能指针 =》 基类指针 =》 派生类指针
+		Derive<T>* derive = dynamic_cast<Derive<T>*>(base_.get());
+		if （derive == nullptr)
+		{
+			throw "type is unmatch!";
+		}
+		return derive->data_;
+	}
 private:
 	class Base
 	{
