@@ -21,7 +21,8 @@ public:
 	Any& operator=(Any&&) = default;
 
 	template<typename T>
-	Any(T data) : base_(std::make_unique<Derive<T>>(data));
+	Any(T data) : base_(std::make_unique<Derive<T>>(data))
+	{}
 
 	// 这个方法能把Any对象里面存储的data数据提取出来
 	template<typename T>
@@ -29,7 +30,7 @@ public:
 	{
 		// 智能指针 =》 基类指针 =》 派生类指针
 		Derive<T>* derive = dynamic_cast<Derive<T>*>(base_.get());
-		if （derive == nullptr)
+		if (derive == nullptr)
 		{
 			throw "type is unmatch!";
 		}
@@ -42,23 +43,21 @@ private:
 		virtual ~Base() = default;
 	};
 	template<typename T>
-	class Derive
+	class Derive : public Base
 	{
 	public:
 		Derive(T data) : data_(data) {}
-		~Derive() = default;
-	private:
 		T data_;
-	};;
+	};
 private:
 	std::unique_ptr<Base> base_;
-};;
+};
 
 // 实现一个信号量类（精简版条件变量）
 class Semaphore 
 {
 public:
-	Semaphore(int limit) : resLimit_(limit) {}
+	Semaphore(int limit = 0) : resLimit_(limit) {}
 	~Semaphore() = default;
 	// 获取资源
 	void wait()
@@ -81,14 +80,42 @@ private:
 	std::condition_variable cond_;
 };
 
+// Task类型的前置声明
+class Task;
+
 // 实现接受提交到线程池的task任务执行完成后的返回值类型Result
+class Result
+{
+public:
+	Result(std::shared_ptr<Task>, bool isValid = true);
+	~Result() = default;
+
+	// 存储task执行完的返回值
+	void setVal(Any any);
+
+	// 获取task的返回值
+	Any get();
+
+private:
+	Any any_; // 存储任务的返回值
+	Semaphore sem_; // 线程通信信号量
+	std::shared_ptr<Task> task_; // 执行对应获取返回值的任务对象
+	std::atomic_bool isValid_; // 返回值是否有效
+};
 
 // 任务抽象基类
 class Task
 {
 public:
+	Task();
+	virtual ~Task() = default;
+	void exec(); // 执行任务
+	void setResult(Result* res);
 	// 用户可以自定义任意类型任务，从Task继承，重写run方法，实现自定义任务处理
 	virtual Any run() = 0;
+
+private:
+	Result* result_; // Result生命周期 > Task
 };
 
 // 线程池支持的模式
@@ -130,7 +157,7 @@ public:
 	void setTaskQueMaxThreshHold(int ThreshHold);
 
 	// 给线程池提交任务
-	void submitTask(std::shared_ptr<Task> sp);
+	Result submitTask(std::shared_ptr<Task> sp);
 
 	// 开启线程池
 	void start(int initThreadSize = 4);
