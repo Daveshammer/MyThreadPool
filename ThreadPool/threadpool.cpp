@@ -4,7 +4,7 @@
 #include <thread>
 #include <iostream>
 
-const int TASK_MAX_THRESHHOLD = 1024;
+const int TASK_MAX_THRESHHOLD = 4;
 
 ThreadPool::ThreadPool()
 	: initThreadSize_(4)

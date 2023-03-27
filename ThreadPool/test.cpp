@@ -21,7 +21,11 @@ int main()
 	ThreadPool pool;
 	pool.start(4);
 
-	//pool.submitTask(std::make_shared<MyTask>());
+	pool.submitTask(std::make_shared<MyTask>());
+	pool.submitTask(std::make_shared<MyTask>());
+	pool.submitTask(std::make_shared<MyTask>());
+	pool.submitTask(std::make_shared<MyTask>());
+	pool.submitTask(std::make_shared<MyTask>()); // 提交任务数大于TASK_MAX_THRESHHOLD，可能提交失败
 	
 	getchar();
 }
