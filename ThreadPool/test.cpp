@@ -30,6 +30,18 @@ private:
 
 int main()
 {
+	{
+		ThreadPool pool;
+
+		pool.start(4);
+
+		Result res1 = pool.submitTask(std::make_shared<MyTask>(1, 10000000));
+		unsigned long long sum1 = res1.get().cast_<unsigned long long>();
+		cout << sum1 << endl;
+	}
+	cout << "main over!" << endl;
+
+#if 0
 	ThreadPool pool;
 	// 用户自己设置线程池的工作模式
 	pool.setPoolMode(PoolMode::MODE_CACHED);
@@ -47,6 +59,7 @@ int main()
 	unsigned long long sum3 = res3.get().cast_<unsigned long long>();
 
 	cout << (sum1 + sum2 + sum3) << endl;
+#endif
 
 #if 0
 	pool.submitTask(std::make_shared<MyTask>());

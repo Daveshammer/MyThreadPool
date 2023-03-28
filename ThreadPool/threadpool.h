@@ -169,7 +169,7 @@ public:
 	Result submitTask(std::shared_ptr<Task> sp);
 
 	// 开启线程池
-	void start(int initThreadSize = 4);
+	void start(int initThreadSize = std::thread::hardware_concurrency());
 
 	// 没有必要对线程池进行拷贝和赋值
 	ThreadPool(const ThreadPool&) = delete;
@@ -197,6 +197,7 @@ private:
 	std::mutex taskQueMtx_; // 保证任务队列的线程安全
 	std::condition_variable notFull_; // 表示任务队列不满
 	std::condition_variable notEmpty_; // 表示任务队列不空
+	std::condition_variable exitCond_; // 等到线程资源全部回收
 
 	PoolMode poolMode_; // 当前线程池的工作模式
 	std::atomic_bool isPoolRunning_; // 表示当前线程池的启动状态

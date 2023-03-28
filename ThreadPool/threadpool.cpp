@@ -20,7 +20,14 @@ ThreadPool::ThreadPool()
 {}
 
 ThreadPool::~ThreadPool()
-{}
+{
+	isPoolRunning_ = false;
+
+	// 等待线程池里面所有的线程返回  有两种状态：阻塞 & 正在执行任务中
+	std::unique_lock<std::mutex> lock(taskQueMtx_);
+	notEmpty_.notify_all();
+	exitCond_.wait(lock, [&]()->bool {return threads_.size() == 0; });
+}
 
 // 设置线程池的工作模式
 void ThreadPool::setPoolMode(PoolMode mode)
@@ -133,6 +140,7 @@ void ThreadPool::start(int initThreadSize)
 void ThreadPool::threadFunc(int threadid)
 {
 	auto lastTime = std::chrono::high_resolution_clock().now();
+	// 所有任务必须执行完成，线程池才可以回收所有线程资源
 	for (;;)
 	{
 		std::shared_ptr<Task> task;
@@ -143,9 +151,18 @@ void ThreadPool::threadFunc(int threadid)
 			std::cout << "tid:" << std::this_thread::get_id()
 				<< "尝试获取任务" << std::endl;
 
-			// cached模式下，有可能已经创建了很多的线程，但是空闲时间超过60s，应该回收多余线程
 			while (taskQue_.size() == 0)
 			{
+				// 线程池要结束，回收线程资源
+				if (!isPoolRunning_)
+				{
+					threads_.erase(threadid); // std::this_thread::getid()
+					std::cout << "threadid:" << std::this_thread::get_id() << " exit!"
+						<< std::endl;
+					exitCond_.notify_all();
+					return; // 线程函数结束，线程结束
+				}
+				// cached模式下，有可能已经创建了很多的线程，但是空闲时间超过60s，应该回收多余线程
 				if (poolMode_ == PoolMode::MODE_CACHED)
 				{
 					// 条件变量，超时返回了
@@ -178,8 +195,7 @@ void ThreadPool::threadFunc(int threadid)
 				}
 
 			}
-			// 等待notEmpty条件
-			notEmpty_.wait(lock, [&]()->bool {return taskQue_.size() > 0; });
+
 			idleThreadSize_--; // 有任务来了，空闲线程数量-1
 
 			std::cout << "tid:" << std::this_thread::get_id()
