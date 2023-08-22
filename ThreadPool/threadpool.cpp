@@ -25,7 +25,7 @@ ThreadPool::~ThreadPool()
 
 	// 等待线程池里面所有的线程返回  有两种状态：阻塞 & 正在执行任务中
 	std::unique_lock<std::mutex> lock(taskQueMtx_);
-	notEmpty_.notify_all();
+	notEmpty_.notify_all(); //后拿到锁的一定要有机会notify正在wait的线程
 	exitCond_.wait(lock, [&]()->bool {return threads_.size() == 0; });
 }
 
@@ -71,7 +71,7 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> sp)
 
 	// 线程间通信	等待任务队列有空余
 	// 用户提交任务，最长不能阻塞超过1s，否则判断提交任务失败，返回
-	if (!notFull_.wait_for(lock, std::chrono::seconds(1), [&] {return taskQue_.size() < taskQueMaxThreshHold_; }))
+	if (!notFull_.wait_for(lock, std::chrono::seconds(1), [&] {return taskQue_.size() < taskQueMaxThreshHold_; })) //任务队列满了就要等待不满的条件
 	{
 		// 表示notFull_等待1s后，条件依然没有满足
 		std::cerr << "task queue is full, submit task fail." << std::endl;
@@ -153,13 +153,13 @@ void ThreadPool::threadFunc(int threadid)
 
 			while (taskQue_.size() == 0)
 			{
-				// 线程池要结束，回收线程资源
+				// 线程池要结束，回收线程资源（等待notEmpty_的线程）
 				if (!isPoolRunning_)
 				{
 					threads_.erase(threadid); // std::this_thread::getid()
 					std::cout << "threadid:" << std::this_thread::get_id() << " exit!"
 						<< std::endl;
-					exitCond_.notify_all();
+					exitCond_.notify_all(); //后拿到锁的一定要有机会notify正在wait的线程
 					return; // 线程函数结束，线程结束
 				}
 				// cached模式下，有可能已经创建了很多的线程，但是空闲时间超过60s，应该回收多余线程
@@ -249,7 +249,7 @@ Thread::~Thread()
 void Thread::start()
 {
 	// 创建一个线程来执行一个线程函数
-	std::thread t(func_, threadId_);
+	std::thread t(func_, threadId_); //函数对象和线程id
 	t.detach();
 }
 
@@ -288,7 +288,7 @@ Result::Result(std::shared_ptr<Task> task, bool isValid)
 	task_->setResult(this);
 }
 
-Any Result::get()
+Any Result::get() //用户调用
 {
 	if (!isValid_)
 	{
@@ -298,7 +298,7 @@ Any Result::get()
 	return std::move(any_);
 }
 
-void Result::setVal(Any any)
+void Result::setVal(Any any) // task任务执行时调用
 {
 	// 存储task执行完的返回值
 	any_ = std::move(any);

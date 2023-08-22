@@ -62,6 +62,8 @@ public:
 	~Semaphore() = default;
 	// 获取资源
 	void wait()
+
+
 	{
 		std::unique_lock<std::mutex> lock(mtx_);
 		// 如果资源已经被占用完了，就等待
@@ -100,7 +102,7 @@ public:
 private:
 	Any any_; // 存储任务的返回值
 	Semaphore sem_; // 线程通信信号量
-	std::shared_ptr<Task> task_; // 执行对应获取返回值的任务对象
+	std::shared_ptr<Task> task_; // 执行对应获取返回值的任务对象，通过强智能指针保证task不会失效
 	std::atomic_bool isValid_; // 返回值是否有效
 };
 
@@ -190,7 +192,7 @@ private:
 	int threadSizeThreshHold_; // 线程数量任务阈值
 	std::atomic_int idleThreadSize_; // 记录空闲线程的数量
 
-	std::queue<std::shared_ptr<Task>> taskQue_; // 任务队列
+	std::queue<std::shared_ptr<Task>> taskQue_; // 任务队列，智能指针保证task的生命周期
 	std::atomic_int taskSize_; // 任务数量
 	int taskQueMaxThreshHold_; // 任务队列上限阈值
 

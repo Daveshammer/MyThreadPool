@@ -137,10 +137,10 @@ public:
 			// 表示notFull_等待1s后，条件依然没有满足
 			std::cerr << "task queue is full, submit task fail." << std::endl;
 			auto task = std::make_shared<std::packaged_task<RType()>>(
-				[]()->RType {return RType(); }
+				[]()->RType {return RType(); } //任务提交失败，创建一个空的 std::packaged_task<RType()>，这是一个可调用对象，但不执行任何实际操作
 			);
 			(*task)();
-			return task->get_future();
+			return task->get_future(); //返回一个默认构造的 RType 值（零值）
 		}
 
 		// 如果有空余，把任务放入任务队列中
@@ -290,7 +290,7 @@ private:
 			{
 				//task->run();
 				//task->exec();
-				task();
+				task(); //执行function<void()>
 			}
 			idleThreadSize_++; // task处理完毕，空闲线程数量+1
 			lastTime = std::chrono::high_resolution_clock().now(); // 更新线程执行完任务的时间
